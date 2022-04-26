@@ -19,7 +19,9 @@ contract Presales is Ownable {
     uint256 public den;
     // deadline for applying to the presales
     uint256 public deadline;
-    // vested endtime (timestamp)
+    // vested endtime (second)
+    uint256 public vestedDuration;
+    // vested datetime
     uint256 public vestedTime;
     // claim launchtime
     uint256 public launchtime;
@@ -51,10 +53,10 @@ contract Presales is Ownable {
         uint256 deadline_,
         uint256 num_,
         uint256 den_,
-        uint256 vestedTime_) {
+        uint256 vestedDuration_) {
         presaleToken = presaleToken_;
         paymentToken = paymentToken_;
-        vestedTime = vestedTime_;
+        vestedDuration = vestedDuration_;
         deadline = deadline_;
         num = num_;
         den = den_;
@@ -110,10 +112,9 @@ contract Presales is Ownable {
 
     function getVestedAmountToClaim(uint256 amount_) public view returns(uint256) {
         uint256 startTime = users[msg.sender].lastClaim;
+        require(startTime < vestedTime, "you have no more to claim.");
         if (startTime == 0) {
             startTime = launchtime;
-        } else if (startTime >= vestedTime) {
-            startTime = vestedTime;
         }
         uint256 rps = amount_.div(vestedTime.sub(startTime));
         uint256 currentTime = block.timestamp;
@@ -173,13 +174,13 @@ contract Presales is Ownable {
     }
     
     function __setIsClaimOpen(bool isClaimOpen_) external onlyOwner {
-        require(vestedTime > block.timestamp, "Vested end time should be higher than current time.");
         isClaimOpen = isClaimOpen_;
         launchtime = block.timestamp;
+        vestedTime = block.timestamp + vestedDuration;
     }
     
-    function __setVestedTime(uint256 vestedTime_) external onlyOwner {
-        vestedTime = vestedTime_;
+    function __setVestedDuration(uint256 vestedDuration_) external onlyOwner {
+        vestedDuration = vestedDuration_;
     }
 
     function __setTokens(IERC20 paymentToken_, IERC20 presaleToken_)
