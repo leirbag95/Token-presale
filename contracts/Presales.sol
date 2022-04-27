@@ -13,10 +13,20 @@ contract Presales is Ownable {
     IERC20 private presaleToken;
     // payment token
     IERC20 private paymentToken;
-    // numerator
-    uint256 public num;
-    // numerator
-    uint256 public den;
+    // private sale num
+    uint256 public priNum;
+    // private sale den
+    uint256 public priDen;
+    // public sale num
+    uint256 public pubNum;
+    // public sale den
+    uint256 public pubDen;
+    // max per wallet
+    uint256 public MAX_WALLET;
+    // max cap to raised
+    uint256 public MAX_CAP;
+    // current cap
+    uint256 public currentCap;
     // deadline for applying to the presales
     uint256 public deadline;
     // vested endtime (second)
@@ -46,20 +56,27 @@ contract Presales is Ownable {
     }
 
     event PrivateSaleAttendance(address indexed address_, uint256 amount_);
+    event PublicSaleAttendance(address indexed address_, uint256 amount_);
 
     constructor(
         IERC20 presaleToken_,
         IERC20 paymentToken_,
         uint256 deadline_,
-        uint256 num_,
-        uint256 den_,
-        uint256 vestedDuration_) {
+        uint256 priNum_,
+        uint256 priDen_,
+        uint256 pubNum_,
+        uint256 pubDen_,
+        uint256 vestedDuration_,
+        uint256 MAX_WALLET_) {
         presaleToken = presaleToken_;
         paymentToken = paymentToken_;
         vestedDuration = vestedDuration_;
         deadline = deadline_;
-        num = num_;
-        den = den_;
+        MAX_WALLET = MAX_WALLET_;
+        priDen = priDen_;
+        priNum = priNum_;
+        pubDen = pubDen_;
+        pubNum = pubNum_;
     }
 
     function privateSale(uint256 amount_) external onlyWL {
@@ -68,8 +85,20 @@ contract Presales is Ownable {
         require(users[msg.sender].allocAmount >= users[msg.sender].paidAmount.add(amount_), "You exceeded the authorized amount");
         paymentToken.transferFrom(msg.sender, address(this), amount_);
         users[msg.sender].paidAmount  += amount_;
-        users[msg.sender].tokenAmount += amount_.mul(num).div(den);
+        users[msg.sender].tokenAmount += amount_.mul(priNum).div(priDen);
+        currentCap += amount_;
         emit PrivateSaleAttendance(msg.sender, amount_);
+    }
+
+    function publicSale(uint256 amount_) external {
+        require(block.timestamp >= deadline && block.timestamp < (deadline.add(86400)), "Public Sale is closed.");
+        require(users[msg.sender].paidAmount.add(amount_) > MAX_WALLET);
+        require(users[msg.sender].paidAmount.add(amount_) <= MAX_CAP);
+        paymentToken.transferFrom(msg.sender, address(this), amount_);
+        users[msg.sender].paidAmount  += amount_;
+        users[msg.sender].tokenAmount += amount_.mul(pubNum).div(pubDen);
+        currentCap += amount_;
+        emit PublicSaleAttendance(msg.sender, amount_);
     }
 
     function claim() external {
@@ -85,7 +114,7 @@ contract Presales is Ownable {
         users[msg.sender].tokenAmount -= tokenAmount;
     }
 
-    function refund() external onlyWL {
+    function refund() external {
         require(isRFEnabled, "Refund is not enabled yet.");
         require(users[msg.sender].paidAmount > 0, "The minimum amount must be greater than 0.");
         paymentToken.approve(address(this),users[msg.sender].paidAmount);
@@ -147,6 +176,9 @@ contract Presales is Ownable {
      * @param amount_ Amount of the allocation
      */
     function __updateWLAllocation(address address_, uint256 amount_, bool isWL_) external onlyOwner {
+        require(users[address_].allocAmount >= MAX_CAP, "alloc amount is lower than max cap");
+        MAX_CAP += amount_;
+        MAX_CAP -= users[address_].allocAmount;
         users[address_] = User(amount_, 0,0,0,isWL_);
     }
 
@@ -158,6 +190,7 @@ contract Presales is Ownable {
     function __addWLs(address[] memory addresses_, uint256 amount_) external onlyOwner {
         for(uint256 i=0;i<addresses_.length;i++){
             users[addresses_[i]] = User(amount_, 0,0,0, true);
+            MAX_CAP += amount_;
         }
     }
 
