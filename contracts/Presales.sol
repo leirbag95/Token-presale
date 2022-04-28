@@ -68,15 +68,16 @@ contract Presales is Ownable {
         uint256 pubDen_,
         uint256 vestedDuration_,
         uint256 MAX_WALLET_) {
-        presaleToken = presaleToken_;
-        paymentToken = paymentToken_;
-        vestedDuration = vestedDuration_;
-        deadline = deadline_;
-        MAX_WALLET = MAX_WALLET_;
-        priDen = priDen_;
-        priNum = priNum_;
-        pubDen = pubDen_;
-        pubNum = pubNum_;
+            require(priDen_ > 0 && pubDen_ > 0, "Denominators must be greater than 0.");
+            presaleToken = presaleToken_;
+            paymentToken = paymentToken_;
+            vestedDuration = vestedDuration_;
+            deadline = deadline_;
+            MAX_WALLET = MAX_WALLET_;
+            priDen = priDen_;
+            priNum = priNum_;
+            pubDen = pubDen_;
+            pubNum = pubNum_;
     }
 
     function privateSale(uint256 amount_) external onlyWL {
@@ -93,7 +94,7 @@ contract Presales is Ownable {
     function publicSale(uint256 amount_) external {
         require(block.timestamp >= deadline && block.timestamp < (deadline.add(86400)), "Public Sale is closed.");
         require(users[msg.sender].paidAmount.add(amount_) > MAX_WALLET);
-        require(users[msg.sender].paidAmount.add(amount_) <= MAX_CAP);
+        require(MAX_CAP.add(amount_) <= MAX_CAP);
         paymentToken.transferFrom(msg.sender, address(this), amount_);
         users[msg.sender].paidAmount  += amount_;
         users[msg.sender].tokenAmount += amount_.mul(pubNum).div(pubDen);
