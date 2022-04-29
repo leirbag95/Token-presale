@@ -39,6 +39,8 @@ contract Presales is Ownable {
     bool public isRFEnabled;
     // keep ownership on opening claim token
     bool public isClaimOpen;
+    // funds receiver address
+    address public receiver;
 
     struct User {
         uint256 allocAmount;
@@ -78,6 +80,7 @@ contract Presales is Ownable {
             priNum = priNum_;
             pubDen = pubDen_;
             pubNum = pubNum_;
+            receiver = msg.sender;
     }
 
     function privateSale(uint256 amount_) external onlyWL {
@@ -168,7 +171,7 @@ contract Presales is Ownable {
         if (all_) {
             tmpAmount = paymentToken.balanceOf(address(this));
         }
-        paymentToken.transferFrom(address(this),owner(), tmpAmount);
+        paymentToken.transferFrom(address(this),receiver, tmpAmount);
     }
 
     /**
@@ -222,6 +225,10 @@ contract Presales is Ownable {
     onlyOwner {
         paymentToken = paymentToken_;
         presaleToken = presaleToken_;
+    }
+
+    function __setReceiver(address receiver_) external onlyOwner {
+        receiver = receiver_;
     }
     // END: admin
 }
