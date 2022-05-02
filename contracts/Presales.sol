@@ -109,7 +109,7 @@ contract Presales is Ownable, ReentrancyGuard {
         users[msg.sender].lastClaim = block.timestamp;
         users[msg.sender].tokenAmount -= tokenAmount;
 
-        presaleToken.approve(address(this), users[msg.sender].tokenAmount);
+        presaleToken.approve(address(this), tokenAmount);
         presaleToken.transferFrom(
             address(this),
             msg.sender,
