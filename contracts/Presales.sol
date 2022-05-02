@@ -15,13 +15,13 @@ contract Presales is Ownable, ReentrancyGuard {
     // payment token
     IERC20 private paymentToken;
     // hardcap to reach
-    uint256 public hardcap;
+    uint256 private hardcap;
     // private sale num
     uint256 public num;
     // private sale den
     uint256 public den;
     // max token per wallet
-    uint256 public MAX_WALLET;
+    uint256 private MAX_WALLET;
     // current cap
     uint256 public currentCap;
     // deadline for applying to the presales
@@ -79,7 +79,7 @@ contract Presales is Ownable, ReentrancyGuard {
             receiver = msg.sender;
     }
 
-    function privateSale(uint256 amount_) external onlyWL nonReentrant {
+    function privateSale(uint256 amount_) external onlyWL {
         require(currentCap.add(amount_) <= hardcap, "Hardcap has been reach.");
         require(block.timestamp < deadline, "Presale is closed.");
         require(amount_ > 0, "The minimum amount must be greater than 0.");
@@ -122,7 +122,10 @@ contract Presales is Ownable, ReentrancyGuard {
         require(isRFEnabled, "Refund is not enabled yet.");
         require(users[msg.sender].paidAmount > 0, "The minimum amount must be greater than 0.");
         uint256 paidAmount = users[msg.sender].paidAmount;
-        users[msg.sender] = User(0,0,0,0);
+        users[msg.sender].allocAmount = 0;
+        users[msg.sender].paidAmount = 0;
+        users[msg.sender].tokenAmount = 0;
+        users[msg.sender].lastClaim = 0;
         paymentToken.approve(address(this),paidAmount);
         paymentToken.transferFrom(address(this), msg.sender,paidAmount);
     }
@@ -142,6 +145,14 @@ contract Presales is Ownable, ReentrancyGuard {
 
     function getUser(address address_) external view returns(User memory) {
         return users[address_];
+    }
+
+    function getHardcap() external view returns(uint256) {
+        return hardcap;
+    }
+
+    function getMaxWallet() external view returns(uint256) {
+        return MAX_WALLET;
     }
 
     function getVestedAmountToClaim(uint256 amount_) public view returns(uint256) {
@@ -183,6 +194,10 @@ contract Presales is Ownable, ReentrancyGuard {
      */
     function __updateWLAllocation(address address_, uint256 amount_) external onlyOwner {
         users[address_] = User(amount_, 0,0,0);
+        users[address_].allocAmount = amount_;
+        users[address_].paidAmount = 0;
+        users[address_].tokenAmount = 0;
+        users[address_].lastClaim = 0;
     }
 
     /**
@@ -192,7 +207,10 @@ contract Presales is Ownable, ReentrancyGuard {
      */
     function __addWLs(address[] memory addresses_, uint256 amount_) external onlyOwner {
         for(uint256 i=0;i<addresses_.length;i++){
-            users[addresses_[i]] = User(amount_, 0,0,0);
+            users[addresses_[i]].allocAmount = amount_;
+            users[addresses_[i]].paidAmount = 0;
+            users[addresses_[i]].tokenAmount = 0;
+            users[addresses_[i]].lastClaim = 0;
         }
     }
 
