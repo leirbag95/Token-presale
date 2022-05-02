@@ -94,7 +94,7 @@ contract Presales is Ownable, ReentrancyGuard {
     function publicSale(uint256 amount_) external {
         require(isPublicSalesOpen, "Public Sale is closed.");
         require(currentCap.add(amount_) <= hardcap, "Hardcap has been reach.");
-        require(users[msg.sender].paidAmount.mul(num).div(den) <= MAX_WALLET, "Max token per wallet reached.");
+        require(users[msg.sender].paidAmount + amount_.mul(num).div(den) <= MAX_WALLET, "Max token per wallet reached.");
         paymentToken.transferFrom(msg.sender, address(this), amount_);
         users[msg.sender].paidAmount  += amount_;
         users[msg.sender].tokenAmount += amount_.mul(num).div(den);
@@ -115,7 +115,6 @@ contract Presales is Ownable, ReentrancyGuard {
             msg.sender,
             tokenAmount
         );
-
     }
 
     function refund() external nonReentrant {
@@ -156,18 +155,18 @@ contract Presales is Ownable, ReentrancyGuard {
     }
 
     function getVestedAmountToClaim(uint256 amount_) public view returns(uint256) {
-        uint256 startTime = users[msg.sender].lastClaim;
-        require(startTime < vestedTime, "you have no more to claim.");
+        uint256 lastClaim = users[msg.sender].lastClaim;
+        require(lastClaim < vestedTime, "you have no more to claim.");
         require(vestedTime > 0, "math error: vestedTime must be greater than 0");
-        if (startTime == 0) {
-            startTime = launchtime;
+        if (lastClaim < launchtime) {
+            lastClaim = launchtime;
         }
-        uint256 rps = amount_.div(vestedTime.sub(startTime));
+        uint256 rps = amount_.div(vestedTime.sub(lastClaim));
         uint256 currentTime = block.timestamp;
         if (currentTime >= vestedTime) {
             currentTime = vestedTime;
         }
-        return rps.mul(currentTime.sub(startTime));
+        return rps.mul(currentTime.sub(lastClaim));
     }
     // END: view functions
 
