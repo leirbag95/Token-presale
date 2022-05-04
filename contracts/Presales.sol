@@ -86,7 +86,7 @@ contract Presales is Ownable, ReentrancyGuard {
         require(users[msg.sender].allocAmount >= users[msg.sender].paidAmount.add(amount_), "You exceeded the authorized amount");
         paymentToken.transferFrom(msg.sender, address(this), amount_);
         users[msg.sender].paidAmount  += amount_;
-        users[msg.sender].tokenAmount += amount_.mul(num).div(den);
+        users[msg.sender].tokenAmount += amount_.mul(den).div(num);
         currentCap += amount_;
         emit PrivateSaleAttendance(msg.sender, amount_);
     }
@@ -94,10 +94,10 @@ contract Presales is Ownable, ReentrancyGuard {
     function publicSale(uint256 amount_) external {
         require(isPublicSalesOpen, "Public Sale is closed.");
         require(currentCap.add(amount_) <= hardcap, "Hardcap has been reach.");
-        require(users[msg.sender].paidAmount + amount_.mul(num).div(den) <= MAX_WALLET, "Max token per wallet reached.");
+        require((users[msg.sender].tokenAmount + amount_.mul(den).div(num)) <= MAX_WALLET,  "Max token per wallet reached.");
         paymentToken.transferFrom(msg.sender, address(this), amount_);
         users[msg.sender].paidAmount  += amount_;
-        users[msg.sender].tokenAmount += amount_.mul(num).div(den);
+        users[msg.sender].tokenAmount += amount_.mul(den).div(num);
         currentCap += amount_;
         emit PublicSaleAttendance(msg.sender, amount_);
     }
@@ -125,6 +125,9 @@ contract Presales is Ownable, ReentrancyGuard {
         users[msg.sender].paidAmount = 0;
         users[msg.sender].tokenAmount = 0;
         users[msg.sender].lastClaim = 0;
+        if (currentCap >= paidAmount) {
+            currentCap -= paidAmount;
+        } 
         paymentToken.approve(address(this),paidAmount);
         paymentToken.transferFrom(address(this), msg.sender,paidAmount);
     }
@@ -178,7 +181,7 @@ contract Presales is Ownable, ReentrancyGuard {
      */
     function __withdraw(uint256 amount_, bool all_) external onlyOwner {
         require(block.timestamp >= deadline, "You can not withdraw funds yet.");
-        paymentToken.approve(address(this), paymentToken.balanceOf(address(this)));
+        paymentToken.approve(address(this), amount_);
         uint256 tmpAmount = amount_;
         if (all_) {
             tmpAmount = paymentToken.balanceOf(address(this));
@@ -233,6 +236,7 @@ contract Presales is Ownable, ReentrancyGuard {
     
     function __setIsClaimOpen(bool isClaimOpen_) external onlyOwner {
         isClaimOpen = isClaimOpen_;
+        isPublicSalesOpen = false;
         launchtime = block.timestamp;
         vestedTime = block.timestamp + vestedDuration;
     }
@@ -252,8 +256,11 @@ contract Presales is Ownable, ReentrancyGuard {
         presaleToken = presaleToken_;
     }
 
-    function __setReceiver(address receiver_) external onlyOwner {
-        receiver = receiver_;
+    function __setTokenPrice(uint256 num_, uint256 den_)
+    external
+    onlyOwner {
+        num = num_;
+        den = den_;
     }
     // END: admin
 }

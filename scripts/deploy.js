@@ -15,34 +15,29 @@ async function main() {
 
   // We get the contract to deploy
   const Presales = await hre.ethers.getContractFactory("Presales");
-  const PaymentERC20 = await hre.ethers.getContractFactory("ERC20Test");
-  const PresaleERC20 = await hre.ethers.getContractFactory("ERC20Test");
-  const paymentToken = await PaymentERC20.deploy("100000000000000000000000000000000000000000000000000", "Dai", "DAI");
-  const presaleToken = await PresaleERC20.deploy("100000000000000000000000000000000000000000000000000", "YourToken", "YT");
-  console.log(paymentToken.address)
-  console.log(presaleToken.address)
+  const Token1 = "YOUR TOKEN"
+  const Token2 = "YOUR TOKEN"
+
   // We get const for deploying main contract
-  const priNum = "225"
-  const priDen = "100"
-  const pubNum = "250"
-  const pubDen = "100"
-  const vestedDuration = String(86400 * 2)
-  const MAX_WALLET = "2500000000000000000000";
+  const num = "2250"
+  const den = "1000"
+  const presaleDuration = 86400
+  const vestedDuration = String(604800)
+  const hardcap = "500000000000000000000000"
+  const MAX_WALLET = "1000000000000000000000";
 
   const presales = await Presales.deploy(
-    presaleToken.address,
-    paymentToken.address,
-    String(Date.now()+86400),
-    priNum,
-    priDen,
-    pubNum,
-    pubDen,
+    Token1,
+    Token2,
+    String(Math.round(Date.now() / 1000) + presaleDuration),
+    num,
+    den,
     vestedDuration,
+    hardcap,
     MAX_WALLET
   );
 
   await presales.deployed();
-
   console.log("Presales deployed to:", presales.address);
 }
 
